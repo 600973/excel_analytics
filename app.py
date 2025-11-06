@@ -4,10 +4,10 @@ from modules.chat import show_chat
 
 st.set_page_config(page_title="Чат Аналитика", layout="wide")
 
-tab1, tab2, tab3 = st.tabs(["Аналитика", "Чат", "Настройки"])
+tab1, tab2, tab3, tab4 = st.tabs(["Данные", "Аналитика", "Чат", "Настройки"])
 
 with tab1:
-    st.header("Аналитика")
+    st.header("Данные")
     
     # Загрузка файла
     uploaded_file = st.file_uploader("📊 Загрузите Excel файл", type=['xlsx', 'xls'])
@@ -33,7 +33,10 @@ with tab1:
         st.dataframe(df.describe(), use_container_width=True)
 
 with tab2:
-    show_chat()
+    st.header("Аналитика")
 
 with tab3:
+    show_chat()
+
+with tab4:
     st.header("Настройки")
