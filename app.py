@@ -7,6 +7,8 @@ st.set_page_config(page_title="Чат Аналитика", layout="wide")
 # Инициализация хранилища данных
 if 'datasets' not in st.session_state:
     st.session_state.datasets = {}
+if 'column_types' not in st.session_state:
+    st.session_state.column_types = {}
 
 tab1, tab2, tab3, tab4 = st.tabs(["Данные", "Аналитика", "Чат", "Настройки"])
 
@@ -42,8 +44,56 @@ with tab1:
                 with col3:
                     if st.button("❌ Удалить", key=f"del_{name}"):
                         del st.session_state.datasets[name]
+                        if name in st.session_state.column_types:
+                            del st.session_state.column_types[name]
                         st.rerun()
                 
+                # Настройка типов данных
+                if name not in st.session_state.column_types:
+                    st.session_state.column_types[name] = {}
+                    for col_name in df.columns:
+                        current_type = str(df[col_name].dtype)
+                        if 'object' in current_type:
+                            st.session_state.column_types[name][col_name] = 'string'
+                        elif 'int' in current_type:
+                            st.session_state.column_types[name][col_name] = 'integer'
+                        elif 'float' in current_type:
+                            st.session_state.column_types[name][col_name] = 'float'
+                        else:
+                            st.session_state.column_types[name][col_name] = 'string'
+                
+                # HTML стиль для выпадающих списков над таблицей
+                st.markdown("""
+                <style>
+                    .type-selector-container {
+                        display: flex;
+                        gap: 10px;
+                        overflow-x: auto;
+                        margin-bottom: 5px;
+                    }
+                    .type-selector {
+                        min-width: 150px;
+                        flex-shrink: 0;
+                    }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # Создаём выпадающие списки, которые прокручиваются вместе
+                type_cols = st.columns(len(df.columns))
+                for idx, col_name in enumerate(df.columns):
+                    with type_cols[idx]:
+                        selected_type = st.selectbox(
+                            f"📋 {col_name[:15]}...",
+                            options=['string', 'integer', 'float', 'datetime', 'boolean'],
+                            index=['string', 'integer', 'float', 'datetime', 'boolean'].index(
+                                st.session_state.column_types[name].get(col_name, 'string')
+                            ),
+                            key=f"type_{name}_{col_name}",
+                            label_visibility="visible"
+                        )
+                        st.session_state.column_types[name][col_name] = selected_type
+                
+                # Таблица с данными
                 st.dataframe(df.head(10), use_container_width=True)
 
 with tab2:
