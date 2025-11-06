@@ -30,3 +30,7 @@ Thumbs.db
 *token*.txt
 *Token*.txt
 
+# Project utility scripts (local only)
+tree_generator.py
+project_header.py
+
