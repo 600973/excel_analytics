@@ -112,7 +112,9 @@ with tab2:
         # Редактор формул
         st.subheader("📝 Редактор формул")
         
-        col1, col2 = st.columns([2, 1])
+        # Настройка ширины колонок
+        sidebar_width = st.slider("Ширина боковой панели", 1, 5, 2, help="Регулируйте ширину правой панели")
+        col1, col2 = st.columns([5-sidebar_width, sidebar_width])
         
         with col1:
             # Область для формулы
@@ -171,32 +173,29 @@ with tab2:
                     st.error(f"❌ Ошибка выполнения: {e}")
         
         with col2:
-            # Список столбцов для быстрой вставки
-            st.write("**📊 Столбцы датасета:**")
-            st.caption("Кликните чтобы скопировать")
+            # Список столбцов (сворачиваемый)
+            with st.expander("📊 Столбцы датасета", expanded=True):
+                st.caption("Кликните чтобы скопировать")
+                
+                for col in df.columns:
+                    col_type = str(df[col].dtype)
+                    if st.button(f"📌 {col}", key=f"col_{col}", use_container_width=True):
+                        st.code(f"df['{col}']", language="python")
             
-            for col in df.columns:
-                col_type = str(df[col].dtype)
-                if st.button(f"📌 {col}", key=f"col_{col}", use_container_width=True):
-                    st.code(f"df['{col}']", language="python")
-            
-            st.divider()
-            
-            # Быстрые шаблоны
-            st.write("**⚡ Шаблоны:**")
-            
-            templates = {
-                "Сумма": f"result = df['СТОЛБЕЦ'].sum()",
-                "Среднее": f"result = df['СТОЛБЕЦ'].mean()",
-                "Группировка": f"result = df.groupby('СТОЛБЕЦ')['ЗНАЧЕНИЕ'].sum()",
-                "График (линия)": f"fig = px.line(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
-                "График (столбцы)": f"fig = px.bar(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
-                "Фильтр": f"result = df[df['СТОЛБЕЦ'] > ЗНАЧЕНИЕ]"
-            }
-            
-            for name, code in templates.items():
-                if st.button(name, key=f"tmpl_{name}", use_container_width=True):
-                    st.code(code, language="python")
+            # Быстрые шаблоны (сворачиваемый)
+            with st.expander("⚡ Шаблоны", expanded=False):
+                templates = {
+                    "Сумма": f"result = df['СТОЛБЕЦ'].sum()",
+                    "Среднее": f"result = df['СТОЛБЕЦ'].mean()",
+                    "Группировка": f"result = df.groupby('СТОЛБЕЦ')['ЗНАЧЕНИЕ'].sum()",
+                    "График (линия)": f"fig = px.line(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
+                    "График (столбцы)": f"fig = px.bar(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
+                    "Фильтр": f"result = df[df['СТОЛБЕЦ'] > ЗНАЧЕНИЕ]"
+                }
+                
+                for name, code in templates.items():
+                    if st.button(name, key=f"tmpl_{name}", use_container_width=True):
+                        st.code(code, language="python")
         
         st.divider()
         
