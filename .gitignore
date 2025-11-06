@@ -33,4 +33,5 @@ Thumbs.db
 # Project utility scripts (local only)
 tree_generator.py
 project_header.py
+archive.py
 
