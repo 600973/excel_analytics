@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from modules.chat import show_chat
 
 st.set_page_config(page_title="Чат Аналитика", layout="wide")
@@ -108,7 +109,99 @@ with tab2:
         
         df = st.session_state.datasets[selected_dataset]
         
-        st.subheader(f"Анализ: {selected_dataset}")
+        # Редактор формул
+        st.subheader("📝 Редактор формул")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Область для формулы
+            st.write("**Напишите Python код:**")
+            
+            # Примеры быстрого доступа
+            st.caption("Переменная `df` содержит выбранный датасет. Используйте pandas, numpy, matplotlib, plotly.")
+            
+            formula = st.text_area(
+                "Формула:",
+                value="# Пример: сумма по столбцу\nresult = df['Код Физ.Лица'].sum()\nprint(f'Сумма: {result}')",
+                height=200,
+                help="Используйте df для доступа к данным"
+            )
+            
+            # Кнопка выполнения
+            if st.button("▶️ Выполнить", type="primary"):
+                try:
+                    # Создаём безопасное окружение для выполнения
+                    import matplotlib.pyplot as plt
+                    import plotly.express as px
+                    import plotly.graph_objects as go
+                    
+                    # Локальное пространство имён
+                    local_vars = {
+                        'df': df.copy(),
+                        'pd': pd,
+                        'np': np,
+                        'plt': plt,
+                        'px': px,
+                        'go': go,
+                        'st': st
+                    }
+                    
+                    # Выполнение кода
+                    exec(formula, local_vars)
+                    
+                    # Если есть result - показываем
+                    if 'result' in local_vars:
+                        st.success("✅ Выполнено успешно!")
+                        st.write("**Результат:**")
+                        
+                        result = local_vars['result']
+                        
+                        # Определяем тип результата
+                        if isinstance(result, (int, float)):
+                            st.metric("Значение", f"{result:,.2f}")
+                        elif isinstance(result, pd.DataFrame):
+                            st.dataframe(result, use_container_width=True)
+                        elif isinstance(result, pd.Series):
+                            st.dataframe(result.to_frame(), use_container_width=True)
+                        else:
+                            st.write(result)
+                    
+                except Exception as e:
+                    st.error(f"❌ Ошибка выполнения: {e}")
+        
+        with col2:
+            # Список столбцов для быстрой вставки
+            st.write("**📊 Столбцы датасета:**")
+            st.caption("Кликните чтобы скопировать")
+            
+            for col in df.columns:
+                col_type = str(df[col].dtype)
+                if st.button(f"📌 {col}", key=f"col_{col}", use_container_width=True):
+                    st.code(f"df['{col}']", language="python")
+            
+            st.divider()
+            
+            # Быстрые шаблоны
+            st.write("**⚡ Шаблоны:**")
+            
+            templates = {
+                "Сумма": f"result = df['СТОЛБЕЦ'].sum()",
+                "Среднее": f"result = df['СТОЛБЕЦ'].mean()",
+                "Группировка": f"result = df.groupby('СТОЛБЕЦ')['ЗНАЧЕНИЕ'].sum()",
+                "График (линия)": f"fig = px.line(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
+                "График (столбцы)": f"fig = px.bar(df, x='СТОЛБЕЦ_X', y='СТОЛБЕЦ_Y')\nst.plotly_chart(fig)",
+                "Фильтр": f"result = df[df['СТОЛБЕЦ'] > ЗНАЧЕНИЕ]"
+            }
+            
+            for name, code in templates.items():
+                if st.button(name, key=f"tmpl_{name}", use_container_width=True):
+                    st.code(code, language="python")
+        
+        st.divider()
+        
+        # Просмотр данных
+        st.subheader(f"📋 Данные: {selected_dataset}")
         st.dataframe(df, use_container_width=True)
     else:
         st.info("📂 Загрузите файлы на вкладке 'Данные'")
