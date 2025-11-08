@@ -110,51 +110,106 @@ with tab2:
         
         df = st.session_state.datasets[selected_dataset]
         
-        # Редактор формул
-        st.subheader("📝 Код")
+        # Инициализация
+        if 'filters' not in st.session_state:
+            st.session_state.filters = {}
+        if 'show_filters' not in st.session_state:
+            st.session_state.show_filters = False
         
-        formula = st.text_area(
-            "Python:",
-            value="# df - ваш датасет\nresult = df['Столбец'].sum()",
-            height=300
-        )
+        # Кнопка показать/скрыть фильтры
+        show_filters = st.checkbox("🔍 Показать фильтры", value=st.session_state.show_filters)
+        st.session_state.show_filters = show_filters
         
-        if st.button("▶️ Выполнить", type="primary"):
-            try:
-                import matplotlib.pyplot as plt
-                import plotly.express as px
-                import plotly.graph_objects as go
+        # Применение фильтров
+        df_filtered = df.copy()
+        for col, values in st.session_state.filters.items():
+            if values and col in df_filtered.columns:
+                df_filtered = df_filtered[df_filtered[col].isin(values)]
+        
+        if show_filters:
+            col1, col2 = st.columns([1, 3])
+            
+            with col1:
+                st.subheader("📄 Фильтры")
                 
-                local_vars = {
-                    'df': df.copy(),
-                    'pd': pd,
-                    'np': np,
-                    'plt': plt,
-                    'px': px,
-                    'go': go,
-                    'st': st
-                }
+                for col in df.columns:
+                    with st.expander(f"📌 {col}"):
+                        unique_values = df[col].dropna().unique().tolist()
+                        selected_values = st.multiselect(
+                            "Значения:",
+                            options=unique_values,
+                            default=st.session_state.filters.get(col, []),
+                            key=f"filter_{col}"
+                        )
+                        st.session_state.filters[col] = selected_values
                 
-                exec(formula, local_vars)
+                if st.button("🔄 Сбросить", use_container_width=True):
+                    st.session_state.filters = {}
+                    st.rerun()
+            
+            with col2:
+                if len(df_filtered) < len(df):
+                    st.info(f"📊 {len(df_filtered)} из {len(df)} строк")
                 
-                if 'result' in local_vars:
-                    st.success("✅ Готово")
-                    result = local_vars['result']
+                st.subheader("📝 Код")
+                formula = st.text_area("Python:", value="# df - датасет\nresult = df['Столбец'].sum()", height=300)
+                
+                if st.button("▶️ Выполнить", type="primary"):
+                    try:
+                        import matplotlib.pyplot as plt
+                        import plotly.express as px
+                        import plotly.graph_objects as go
+                        
+                        exec(formula, {'df': df_filtered.copy(), 'pd': pd, 'np': np, 'plt': plt, 'px': px, 'go': go, 'st': st})
+                        
+                        if 'result' in locals():
+                            st.success("✅ Готово")
+                            result = locals()['result']
+                            if isinstance(result, (int, float)):
+                                st.metric("Результат", f"{result:,.2f}")
+                            elif isinstance(result, pd.DataFrame):
+                                st.dataframe(result, use_container_width=True)
+                            elif isinstance(result, pd.Series):
+                                st.dataframe(result.to_frame(), use_container_width=True)
+                            else:
+                                st.write(result)
+                    except Exception as e:
+                        st.error(f"❌ {e}")
+                
+                st.divider()
+                st.dataframe(df_filtered, use_container_width=True)
+        else:
+            if len(df_filtered) < len(df):
+                st.info(f"📊 {len(df_filtered)} из {len(df)} строк")
+            
+            st.subheader("📝 Код")
+            formula = st.text_area("Python:", value="# df - датасет\nresult = df['Столбец'].sum()", height=300)
+            
+            if st.button("▶️ Выполнить", type="primary"):
+                try:
+                    import matplotlib.pyplot as plt
+                    import plotly.express as px
+                    import plotly.graph_objects as go
                     
-                    if isinstance(result, (int, float)):
-                        st.metric("Результат", f"{result:,.2f}")
-                    elif isinstance(result, pd.DataFrame):
-                        st.dataframe(result, use_container_width=True)
-                    elif isinstance(result, pd.Series):
-                        st.dataframe(result.to_frame(), use_container_width=True)
-                    else:
-                        st.write(result)
-                
-            except Exception as e:
-                st.error(f"❌ {e}")
-        
-        st.divider()
-        st.dataframe(df, use_container_width=True)
+                    local_vars = {'df': df_filtered.copy(), 'pd': pd, 'np': np, 'plt': plt, 'px': px, 'go': go, 'st': st}
+                    exec(formula, local_vars)
+                    
+                    if 'result' in local_vars:
+                        st.success("✅ Готово")
+                        result = local_vars['result']
+                        if isinstance(result, (int, float)):
+                            st.metric("Результат", f"{result:,.2f}")
+                        elif isinstance(result, pd.DataFrame):
+                            st.dataframe(result, use_container_width=True)
+                        elif isinstance(result, pd.Series):
+                            st.dataframe(result.to_frame(), use_container_width=True)
+                        else:
+                            st.write(result)
+                except Exception as e:
+                    st.error(f"❌ {e}")
+            
+            st.divider()
+            st.dataframe(df_filtered, use_container_width=True)
     else:
         st.info("📂 Загрузите файлы")
 
