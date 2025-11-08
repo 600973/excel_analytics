@@ -1,3 +1,4 @@
+# PROJECT_ROOT: modules/chat/chat_page.py
 import streamlit as st
 import requests
 import uuid
