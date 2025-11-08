@@ -15,6 +15,17 @@ def get_ollama_models():
         return []
 
 
+def unload_model(model):
+    """Явная выгрузка модели из памяти"""
+    try:
+        requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": model, "keep_alive": 0}
+        )
+    except:
+        pass  # Игнорируем ошибки выгрузки
+
+
 def send_message_to_ollama(model, messages):
     """Отправить сообщение в Ollama с контекстом"""
     try:
@@ -35,6 +46,8 @@ def show_chat():
     # Инициализация
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "current_model" not in st.session_state:
+        st.session_state.current_model = None
 
     # Выбор модели
     models = get_ollama_models()
@@ -43,6 +56,16 @@ def show_chat():
         return
 
     selected_model = st.selectbox("Модель", models)
+    
+    # Отслеживание переключения модели
+    if st.session_state.current_model and st.session_state.current_model != selected_model:
+        # Выгружаем старую модель
+        with st.spinner(f"⏳ Выгрузка {st.session_state.current_model}..."):
+            unload_model(st.session_state.current_model)
+        st.info(f"✅ Модель переключена: {st.session_state.current_model} → {selected_model}")
+    
+    # Обновляем текущую модель
+    st.session_state.current_model = selected_model
 
     # Отображение сообщений
     chat_container = st.container(height=400)
