@@ -266,24 +266,59 @@ with tab2:
                         import plotly.express as px
                         import plotly.graph_objects as go
                         
-                        exec(formula, {'df': df_filtered.copy(), 'pd': pd, 'np': np, 'plt': plt, 'px': px, 'go': go, 'st': st})
+                        # Выполняем код и сохраняем все переменные
+                        local_vars = {'df': df_filtered.copy(), 'pd': pd, 'np': np, 'plt': plt, 'px': px, 'go': go, 'st': st}
+                        exec(formula, local_vars)
                         
-                        if 'result' in locals():
+                        # Собираем результаты: графики и таблицы
+                        charts = []
+                        tables = []
+                        
+                        # Ищем созданные объекты (исключаем df, fig и служебные)
+                        exclude_vars = {'df', 'fig', 'pd', 'np', 'plt', 'px', 'go', 'st'}
+                        for var_name, var_value in local_vars.items():
+                            if var_name.startswith('_') or var_name in exclude_vars:
+                                continue
+                            
+                            # Plotly графики
+                            if hasattr(var_value, '__class__') and 'plotly' in str(type(var_value)):
+                                charts.append((var_name, var_value))
+                            # DataFrame
+                            elif isinstance(var_value, pd.DataFrame):
+                                tables.append((var_name, var_value))
+                            # Series
+                            elif isinstance(var_value, pd.Series):
+                                tables.append((var_name, var_value.to_frame()))
+                        
+                        # Показываем результаты
+                        if charts or tables:
                             st.success("✅ Готово")
-                            result = locals()['result']
+                            
+                            # Графики
+                            if charts:
+                                for idx, (name, chart) in enumerate(charts):
+                                    st.plotly_chart(chart, use_container_width=True, key=f"chart_with_filters_{idx}")
+                            
+                            # Таблицы под графиками
+                            if tables:
+                                st.subheader("📋 Данные расчёта")
+                                for idx, (name, table) in enumerate(tables):
+                                    with st.expander(f"Таблица: {name}", expanded=True):
+                                        st.dataframe(table, use_container_width=True, key=f"table_with_filters_{idx}")
+                        
+                        # Если есть result - показываем отдельно
+                        elif 'result' in local_vars:
+                            st.success("✅ Готово")
+                            result = local_vars['result']
                             if isinstance(result, (int, float)):
                                 st.metric("Результат", f"{result:,.2f}")
-                            elif isinstance(result, pd.DataFrame):
-                                st.dataframe(result, use_container_width=True)
-                            elif isinstance(result, pd.Series):
-                                st.dataframe(result.to_frame(), use_container_width=True)
                             else:
                                 st.write(result)
+                        else:
+                            st.success("✅ Код выполнен")
+                            
                     except Exception as e:
                         st.error(f"❌ {e}")
-                
-                st.divider()
-                st.dataframe(df_filtered, use_container_width=True)
         else:
             if len(df_filtered) < len(df):
                 st.info(f"📊 {len(df_filtered)} из {len(df)} строк")
@@ -297,25 +332,59 @@ with tab2:
                     import plotly.express as px
                     import plotly.graph_objects as go
                     
+                    # Выполняем код и сохраняем все переменные
                     local_vars = {'df': df_filtered.copy(), 'pd': pd, 'np': np, 'plt': plt, 'px': px, 'go': go, 'st': st}
                     exec(formula, local_vars)
                     
-                    if 'result' in local_vars:
+                    # Собираем результаты: графики и таблицы
+                    charts = []
+                    tables = []
+                    
+                    # Ищем созданные объекты (исключаем df, fig и служебные)
+                    exclude_vars = {'df', 'fig', 'pd', 'np', 'plt', 'px', 'go', 'st'}
+                    for var_name, var_value in local_vars.items():
+                        if var_name.startswith('_') or var_name in exclude_vars:
+                            continue
+                        
+                        # Plotly графики
+                        if hasattr(var_value, '__class__') and 'plotly' in str(type(var_value)):
+                            charts.append((var_name, var_value))
+                        # DataFrame
+                        elif isinstance(var_value, pd.DataFrame):
+                            tables.append((var_name, var_value))
+                        # Series
+                        elif isinstance(var_value, pd.Series):
+                            tables.append((var_name, var_value.to_frame()))
+                    
+                    # Показываем результаты
+                    if charts or tables:
+                        st.success("✅ Готово")
+                        
+                        # Графики
+                        if charts:
+                            for idx, (name, chart) in enumerate(charts):
+                                st.plotly_chart(chart, use_container_width=True, key=f"chart_no_filters_{idx}")
+                        
+                        # Таблицы под графиками
+                        if tables:
+                            st.subheader("📋 Данные расчёта")
+                            for idx, (name, table) in enumerate(tables):
+                                with st.expander(f"Таблица: {name}", expanded=True):
+                                    st.dataframe(table, use_container_width=True, key=f"table_no_filters_{idx}")
+                    
+                    # Если есть result - показываем отдельно
+                    elif 'result' in local_vars:
                         st.success("✅ Готово")
                         result = local_vars['result']
                         if isinstance(result, (int, float)):
                             st.metric("Результат", f"{result:,.2f}")
-                        elif isinstance(result, pd.DataFrame):
-                            st.dataframe(result, use_container_width=True)
-                        elif isinstance(result, pd.Series):
-                            st.dataframe(result.to_frame(), use_container_width=True)
                         else:
                             st.write(result)
+                    else:
+                        st.success("✅ Код выполнен")
+                        
                 except Exception as e:
                     st.error(f"❌ {e}")
-            
-            st.divider()
-            st.dataframe(df_filtered, use_container_width=True)
     else:
         st.info("📂 Загрузите файлы")
 
