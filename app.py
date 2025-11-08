@@ -128,17 +128,62 @@ with tab2:
                 
                 for col in df.columns:
                     with st.expander(f"📌 {col}"):
-                        unique_values = df[col].dropna().unique().tolist()
+                        # Определяем тип столбца
+                        col_dtype = str(df[col].dtype)
+                        is_date = 'datetime' in col_dtype or 'Дата' in col
                         
-                        selected_values = st.multiselect(
-                            "Значения:",
-                            options=unique_values,
-                            default=st.session_state.filters.get(col, []),
-                            key=f"filter_{col}"
-                        )
-                        
-                        # Обновляем фильтр сразу
-                        if selected_values != st.session_state.filters.get(col, []):
+                        if is_date:
+                            # Календарь для дат
+                            st.caption("📅 Выберите диапазон дат")
+                            
+                            min_date = pd.to_datetime(df[col].dropna().min(), dayfirst=True, errors='coerce')
+                            max_date = pd.to_datetime(df[col].dropna().max(), dayfirst=True, errors='coerce')
+                            
+                            date_range = st.date_input(
+                                "Период:",
+                                value=(min_date, max_date),
+                                min_value=min_date,
+                                max_value=max_date,
+                                key=f"date_{col}"
+                            )
+                            
+                            # Сохраняем диапазон дат
+                            if len(date_range) == 2:
+                                st.session_state.filters[col] = list(date_range)
+                            
+                        else:
+                            # Обычный multiselect для остальных
+                            unique_values = sorted(df[col].dropna().unique().tolist())
+                            
+                            # Кнопки выбрать/снять всё
+                            col_btn1, col_btn2 = st.columns(2)
+                            with col_btn1:
+                                if st.button("✅ Всё", key=f"all_{col}", use_container_width=True):
+                                    st.session_state.filters[col] = unique_values
+                                    st.rerun()
+                            with col_btn2:
+                                if st.button("❌ Снять", key=f"none_{col}", use_container_width=True):
+                                    st.session_state.filters[col] = []
+                                    st.rerun()
+                            
+                            # Поиск
+                            search = st.text_input("🔍 Поиск:", key=f"search_{col}", placeholder="Введите для поиска...")
+                            
+                            # Фильтруем значения по поиску
+                            if search:
+                                filtered_values = [v for v in unique_values if search.lower() in str(v).lower()]
+                            else:
+                                filtered_values = unique_values
+                            
+                            # Multiselect
+                            selected_values = st.multiselect(
+                                f"Значения ({len(filtered_values)}):",
+                                options=filtered_values,
+                                default=[v for v in st.session_state.filters.get(col, []) if v in filtered_values],
+                                key=f"filter_{col}"
+                            )
+                            
+                            # Обновляем фильтр
                             st.session_state.filters[col] = selected_values
                 
                 if st.button("🔄 Сбросить", use_container_width=True):
@@ -149,7 +194,20 @@ with tab2:
         df_filtered = df.copy()
         for col, values in st.session_state.filters.items():
             if values and col in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered[col].isin(values)]
+                # Проверяем тип фильтра
+                col_dtype = str(df[col].dtype)
+                is_date = 'datetime' in col_dtype or 'Дата' in col
+                
+                if is_date and len(values) == 2:
+                    # Фильтр по диапазону дат
+                    start_date, end_date = values
+                    df_filtered = df_filtered[
+                        (pd.to_datetime(df_filtered[col], dayfirst=True, errors='coerce') >= pd.Timestamp(start_date)) &
+                        (pd.to_datetime(df_filtered[col], dayfirst=True, errors='coerce') <= pd.Timestamp(end_date))
+                    ]
+                else:
+                    # Обычный фильтр по значениям
+                    df_filtered = df_filtered[df_filtered[col].isin(values)]
         
         if show_filters:
             with col2:
