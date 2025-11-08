@@ -120,12 +120,6 @@ with tab2:
         show_filters = st.checkbox("🔍 Показать фильтры", value=st.session_state.show_filters)
         st.session_state.show_filters = show_filters
         
-        # Применение фильтров
-        df_filtered = df.copy()
-        for col, values in st.session_state.filters.items():
-            if values and col in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered[col].isin(values)]
-        
         if show_filters:
             col1, col2 = st.columns([1, 3])
             
@@ -135,18 +129,29 @@ with tab2:
                 for col in df.columns:
                     with st.expander(f"📌 {col}"):
                         unique_values = df[col].dropna().unique().tolist()
+                        
                         selected_values = st.multiselect(
                             "Значения:",
                             options=unique_values,
                             default=st.session_state.filters.get(col, []),
                             key=f"filter_{col}"
                         )
-                        st.session_state.filters[col] = selected_values
+                        
+                        # Обновляем фильтр сразу
+                        if selected_values != st.session_state.filters.get(col, []):
+                            st.session_state.filters[col] = selected_values
                 
                 if st.button("🔄 Сбросить", use_container_width=True):
                     st.session_state.filters = {}
                     st.rerun()
-            
+        
+        # Применение фильтров (после обновления)
+        df_filtered = df.copy()
+        for col, values in st.session_state.filters.items():
+            if values and col in df_filtered.columns:
+                df_filtered = df_filtered[df_filtered[col].isin(values)]
+        
+        if show_filters:
             with col2:
                 if len(df_filtered) < len(df):
                     st.info(f"📊 {len(df_filtered)} из {len(df)} строк")
