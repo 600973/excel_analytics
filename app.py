@@ -382,18 +382,14 @@ with tab2:
                                 # Контекст фильтров
                                 st.subheader("🔍 Контекст фильтров")
                                 st.code(filter_ctx, language="text")
-                                if st.button("📋 Копировать фильтры", key="copy_filters_with"):
-                                    st.code(filter_ctx, language="text")
-                                    st.success("Скопируйте текст выше")
+                                st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C)")
                                 
                                 st.divider()
                                 
                                 # Контекст расчётов
                                 st.subheader("📊 Контекст расчётов")
                                 st.code(calc_ctx, language="text")
-                                if st.button("📋 Копировать расчёты", key="copy_calc_with"):
-                                    st.code(calc_ctx, language="text")
-                                    st.success("Скопируйте текст выше")
+                                st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C)")
                             
                             with result_tabs[2]:
                                 # Промпт
@@ -447,10 +443,7 @@ with tab2:
                                     height=400,
                                     key="prompt_with_filters"
                                 )
-                                
-                                if st.button("📋 Копировать промпт", key="copy_prompt_with"):
-                                    st.code(prompt_text, language="text")
-                                    st.success("Скопируйте текст выше")
+                                st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C / Ctrl+A)")
                         
                         # Если есть result - показываем отдельно
                         elif 'result' in local_vars:
@@ -536,18 +529,14 @@ with tab2:
                             # Контекст фильтров
                             st.subheader("🔍 Контекст фильтров")
                             st.code(filter_ctx, language="text")
-                            if st.button("📋 Копировать фильтры", key="copy_filters_no"):
-                                st.code(filter_ctx, language="text")
-                                st.success("Скопируйте текст выше")
+                            st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C)")
                             
                             st.divider()
                             
                             # Контекст расчётов
                             st.subheader("📊 Контекст расчётов")
                             st.code(calc_ctx, language="text")
-                            if st.button("📋 Копировать расчёты", key="copy_calc_no"):
-                                st.code(calc_ctx, language="text")
-                                st.success("Скопируйте текст выше")
+                            st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C)")
                         
                         with result_tabs[2]:
                             # Промпт
@@ -601,10 +590,7 @@ with tab2:
                                 height=400,
                                 key="prompt_no_filters"
                             )
-                            
-                            if st.button("📋 Копировать промпт", key="copy_prompt_no"):
-                                st.code(prompt_text, language="text")
-                                st.success("Скопируйте текст выше")
+                            st.caption("💡 Выделите текст выше и скопируйте (Ctrl+C / Ctrl+A)")
                     
                     # Если есть result - показываем отдельно
                     elif 'result' in local_vars:
