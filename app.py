@@ -11,6 +11,8 @@ if 'datasets' not in st.session_state:
     st.session_state.datasets = {}
 if 'column_types' not in st.session_state:
     st.session_state.column_types = {}
+if 'filter_reset_counter' not in st.session_state:
+    st.session_state.filter_reset_counter = 0
 
 tab1, tab2, tab3, tab4 = st.tabs(["Данные", "Аналитика", "Чат", "Настройки"])
 
@@ -127,10 +129,32 @@ with tab2:
                 st.subheader("📄 Фильтры")
                 
                 for col in df.columns:
-                    with st.expander(f"📌 {col}"):
-                        # Определяем тип столбца
-                        col_dtype = str(df[col].dtype)
-                        is_date = 'datetime' in col_dtype or 'Дата' in col
+                    # Проверяем, применён ли фильтр (единая логика для всех типов)
+                    col_dtype = str(df[col].dtype)
+                    is_date = 'datetime' in col_dtype or 'Дата' in col
+                    
+                    # Получаем текущий фильтр
+                    current_filter = st.session_state.filters.get(col, [])
+                    is_filtered = bool(current_filter)
+                    
+                    # Строка с названием и кнопкой сброса
+                    exp_col, btn_col = st.columns([5, 1])
+                    
+                    with exp_col:
+                        # Название фильтра с индикатором
+                        expander_label = f"🔴 {col}" if is_filtered else col
+                        expander_open = st.expander(expander_label)
+                    
+                    with btn_col:
+                        # Кнопка сброса на той же строке
+                        if is_filtered:
+                            if st.button("❌", key=f"clear_{col}", use_container_width=True):
+                                st.session_state.filters[col] = []
+                                st.session_state.filter_reset_counter += 1
+                                st.rerun()
+                    
+                    with expander_open:
+                        # Используем уже определённые переменные col_dtype и is_date
                         
                         if is_date:
                             # Календарь для дат
@@ -139,17 +163,30 @@ with tab2:
                             min_date = pd.to_datetime(df[col].dropna().min(), dayfirst=True, errors='coerce')
                             max_date = pd.to_datetime(df[col].dropna().max(), dayfirst=True, errors='coerce')
                             
+                            # Значение по умолчанию: пустое (None) или из фильтра
+                            default_value = ()
+                            if current_filter and len(current_filter) == 2:
+                                default_value = tuple(current_filter)
+                            
+                            # date_input с уникальным ключом, который меняется при сбросе
                             date_range = st.date_input(
                                 "Период:",
-                                value=(min_date, max_date),
+                                value=default_value,
                                 min_value=min_date,
                                 max_value=max_date,
-                                key=f"date_{col}"
+                                key=f"date_{col}_{st.session_state.filter_reset_counter}"
                             )
                             
-                            # Сохраняем диапазон дат
+                            # Сохраняем диапазон дат ТОЛЬКО если выбрано 2 даты
                             if len(date_range) == 2:
-                                st.session_state.filters[col] = list(date_range)
+                                new_range = list(date_range)
+                                if new_range != st.session_state.filters.get(col, []):
+                                    st.session_state.filters[col] = new_range
+                                    st.rerun()
+                            elif len(date_range) == 0 and current_filter:
+                                # Если очистили даты - сбрасываем фильтр
+                                st.session_state.filters[col] = []
+                                st.rerun()
                             
                         else:
                             # Обычный multiselect для остальных
@@ -164,6 +201,7 @@ with tab2:
                             with col_btn2:
                                 if st.button("❌ Снять", key=f"none_{col}", use_container_width=True):
                                     st.session_state.filters[col] = []
+                                    st.session_state.filter_reset_counter += 1
                                     st.rerun()
                             
                             # Поиск
@@ -175,19 +213,24 @@ with tab2:
                             else:
                                 filtered_values = unique_values
                             
-                            # Multiselect
+                            # Multiselect с уникальным ключом, который меняется при сбросе
                             selected_values = st.multiselect(
                                 f"Значения ({len(filtered_values)}):",
                                 options=filtered_values,
                                 default=[v for v in st.session_state.filters.get(col, []) if v in filtered_values],
-                                key=f"filter_{col}"
+                                key=f"filter_{col}_{st.session_state.filter_reset_counter}"
                             )
                             
-                            # Обновляем фильтр
-                            st.session_state.filters[col] = selected_values
+                            # Обновляем фильтр ТОЛЬКО если изменилось
+                            if selected_values != st.session_state.filters.get(col, []):
+                                st.session_state.filters[col] = selected_values
+                                st.rerun()
                 
-                if st.button("🔄 Сбросить", use_container_width=True):
-                    st.session_state.filters = {}
+                if st.button("🔄 Сбросить все фильтры", use_container_width=True, type="primary"):
+                    # Очищаем все фильтры
+                    for col in df.columns:
+                        st.session_state.filters[col] = []
+                    st.session_state.filter_reset_counter += 1
                     st.rerun()
         
         # Применение фильтров (после обновления)
